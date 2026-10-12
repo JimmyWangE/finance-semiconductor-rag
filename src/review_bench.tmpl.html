@@ -1,0 +1,385 @@
+<title>研报样本抽检台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f2f5f7; --surface:#ffffff; --surface-2:#e9eef2;
+  --line:#d8e0e7; --line-strong:#b9c5cf;
+  --ink:#101820; --ink-2:#4a5966; --ink-3:#78899a;
+  --accent:#0e7c86; --accent-ink:#ffffff; --accent-soft:#dceff1;
+  --pass:#2f7d4f; --pass-soft:#dff0e4;
+  --doubt:#a1701a; --doubt-soft:#fbeed2;
+  --fail:#ac3838; --fail-soft:#f8e0e0;
+  --num-ok-line:#6fae8a; --num-bad-bg:#fbeed2; --num-bad-ink:#7d5410;
+  --shadow:0 1px 2px rgba(16,24,32,.06),0 8px 24px rgba(16,24,32,.05);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"IBM Plex Sans","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0c1116; --surface:#141c24; --surface-2:#1c262f;
+    --line:#26333e; --line-strong:#3a4a58;
+    --ink:#e4ebf1; --ink-2:#a3b2be; --ink-3:#76889a;
+    --accent:#3fa9b3; --accent-ink:#06171a; --accent-soft:#14343a;
+    --pass:#6cc48f; --pass-soft:#14301f;
+    --doubt:#d6a545; --doubt-soft:#33280f;
+    --fail:#e2726f; --fail-soft:#331717;
+    --num-ok-line:#4f8f6c; --num-bad-bg:#3a2c10; --num-bad-ink:#e3bd72;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0c1116; --surface:#141c24; --surface-2:#1c262f;
+  --line:#26333e; --line-strong:#3a4a58;
+  --ink:#e4ebf1; --ink-2:#a3b2be; --ink-3:#76889a;
+  --accent:#3fa9b3; --accent-ink:#06171a; --accent-soft:#14343a;
+  --pass:#6cc48f; --pass-soft:#14301f;
+  --doubt:#d6a545; --doubt-soft:#33280f;
+  --fail:#e2726f; --fail-soft:#331717;
+  --num-ok-line:#4f8f6c; --num-bad-bg:#3a2c10; --num-bad-ink:#e3bd72;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+
+/* ---------- 左栏 ---------- */
+aside{background:var(--surface);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{padding:18px 18px 14px;border-bottom:1px solid var(--line)}
+.brand h1{margin:0;font-size:15px;font-weight:600;letter-spacing:.01em}
+.brand p{margin:3px 0 0;font-size:12px;color:var(--ink-3);font-family:var(--mono)}
+.overall{padding:14px 18px;border-bottom:1px solid var(--line)}
+.bigcount{font-family:var(--mono);font-size:26px;font-weight:500;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.bigcount span{font-size:14px;color:var(--ink-3)}
+.tally{display:flex;gap:10px;margin-top:8px;font-family:var(--mono);font-size:12px;
+  font-variant-numeric:tabular-nums}
+.tally i{font-style:normal;display:inline-flex;align-items:center;gap:4px}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+nav{padding:8px 8px 18px;flex:1}
+.grp{width:100%;display:block;text-align:left;background:none;border:0;cursor:pointer;
+  padding:7px 10px;border-radius:6px;color:var(--ink-2);font:inherit;font-size:13px}
+.grp:hover{background:var(--surface-2);color:var(--ink)}
+.grp[aria-current="true"]{background:var(--accent-soft);color:var(--ink);font-weight:500}
+.grp .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.grp .n{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.bar{height:3px;background:var(--surface-2);border-radius:2px;margin-top:5px;overflow:hidden}
+.bar b{display:block;height:100%;background:var(--accent);border-radius:2px;transition:width .2s}
+.grp[aria-current="true"] .bar{background:var(--surface)}
+
+/* ---------- 主区 ---------- */
+main{display:flex;flex-direction:column;min-width:0;height:100vh}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:12px 22px;border-bottom:1px solid var(--line);background:var(--surface)}
+.chip{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:4px;
+  background:var(--accent-soft);color:var(--accent);border:1px solid transparent;
+  letter-spacing:.03em;text-transform:uppercase}
+.meta{font-family:var(--mono);font-size:12px;color:var(--ink-3);
+  display:flex;gap:14px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.spacer{flex:1}
+.btn{font:inherit;font-size:13px;padding:5px 12px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink)}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:focus-visible,.grp:focus-visible,.vbtn:focus-visible,textarea:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px}
+
+.panes{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:1px;background:var(--line);min-height:0}
+.panes.solo{grid-template-columns:minmax(0,1fr)}
+.pane{background:var(--surface);overflow-y:auto;padding:18px 22px 26px;min-width:0}
+.ptitle{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.ptitle::after{content:"";flex:1;height:1px;background:var(--line)}
+.src{font-size:13.5px;line-height:1.75;color:var(--ink-2);white-space:pre-wrap;
+  word-break:break-word}
+.q{font-size:15.5px;font-weight:500;line-height:1.65;margin:0 0 16px;text-wrap:balance}
+.a{font-size:14.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+.a code,.src code{font-family:var(--mono);font-size:.92em}
+mark.ok{background:none;color:inherit;border-bottom:2px solid var(--num-ok-line);
+  padding-bottom:1px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+mark.bad{background:var(--num-bad-bg);color:var(--num-bad-ink);border-radius:3px;
+  padding:0 3px;font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums}
+.signals{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.sig{font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:4px;
+  background:var(--surface-2);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.sig.warn{background:var(--doubt-soft);color:var(--doubt)}
+.legend{font-size:11.5px;color:var(--ink-3);margin:14px 0 0;padding-top:12px;
+  border-top:1px dashed var(--line);line-height:1.7}
+.legend b{font-weight:500;color:var(--ink-2)}
+
+/* ---------- 底栏 ---------- */
+footer{border-top:1px solid var(--line);background:var(--surface);padding:12px 22px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.verdicts{display:flex;gap:8px}
+.vbtn{font:inherit;font-size:13.5px;padding:7px 16px;border-radius:7px;cursor:pointer;
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);
+  display:inline-flex;align-items:center;gap:7px}
+.vbtn kbd{font-family:var(--mono);font-size:10.5px;padding:1px 5px;border-radius:3px;
+  background:var(--surface-2);color:var(--ink-3);border:1px solid var(--line)}
+.vbtn:hover{color:var(--ink);border-color:var(--line-strong)}
+.vbtn[data-v="pass"][aria-pressed="true"]{background:var(--pass-soft);border-color:var(--pass);color:var(--pass);font-weight:500}
+.vbtn[data-v="doubt"][aria-pressed="true"]{background:var(--doubt-soft);border-color:var(--doubt);color:var(--doubt);font-weight:500}
+.vbtn[data-v="fail"][aria-pressed="true"]{background:var(--fail-soft);border-color:var(--fail);color:var(--fail);font-weight:500}
+textarea{flex:1;min-width:200px;font:inherit;font-size:13px;padding:7px 10px;
+  border:1px solid var(--line);border-radius:6px;background:var(--ground);color:var(--ink);
+  resize:none;height:36px;font-family:var(--sans)}
+.nav{display:flex;gap:6px;align-items:center}
+.pos{font-family:var(--mono);font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums;
+  min-width:64px;text-align:center}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(8px);
+  background:var(--ink);color:var(--ground);padding:9px 16px;border-radius:7px;font-size:13px;
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;box-shadow:var(--shadow);z-index:9}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:1000px){
+  .wrap{grid-template-columns:1fr}
+  aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}
+  nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px}
+  main{height:auto}
+  .panes{grid-template-columns:minmax(0,1fr)}
+  .pane{max-height:none}
+}
+</style>
+
+<div class="wrap">
+  <aside>
+    <div class="brand">
+      <h1>研报样本抽检台</h1>
+      <p id="brandsub">—</p>
+    </div>
+    <div class="overall">
+      <div class="bigcount"><span id="done">0</span><span> / <span id="total">0</span></span></div>
+      <div class="tally">
+        <i><span class="dot" style="background:var(--pass)"></span><span id="t-pass">0</span></i>
+        <i><span class="dot" style="background:var(--doubt)"></span><span id="t-doubt">0</span></i>
+        <i><span class="dot" style="background:var(--fail)"></span><span id="t-fail">0</span></i>
+      </div>
+    </div>
+    <nav id="nav"></nav>
+  </aside>
+
+  <main>
+    <header>
+      <span class="chip" id="h-task">—</span>
+      <div class="meta">
+        <span id="h-org">—</span><span id="h-date">—</span><span id="h-doc">—</span>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn" id="jump-next">跳到未审 →</button>
+      <button class="btn primary" id="copy">复制结果</button>
+    </header>
+
+    <div class="panes" id="panes">
+      <div class="pane" id="pane-src">
+        <p class="ptitle">原文材料</p>
+        <div class="src" id="src"></div>
+      </div>
+      <div class="pane">
+        <p class="ptitle">指令与答案</p>
+        <div class="signals" id="signals"></div>
+        <p class="q" id="q"></p>
+        <div class="a" id="a"></div>
+        <p class="legend" id="legend"></p>
+      </div>
+    </div>
+
+    <footer>
+      <div class="verdicts">
+        <button class="vbtn" data-v="pass"  aria-pressed="false">可用 <kbd>1</kbd></button>
+        <button class="vbtn" data-v="doubt" aria-pressed="false">存疑 <kbd>2</kbd></button>
+        <button class="vbtn" data-v="fail"  aria-pressed="false">不可用 <kbd>3</kbd></button>
+      </div>
+      <textarea id="note" placeholder="备注（存疑/不可用时填，会一并复制出来）"></textarea>
+      <div class="nav">
+        <button class="btn" id="prev">←</button>
+        <span class="pos" id="pos">—</span>
+        <button class="btn" id="next">→</button>
+      </div>
+    </footer>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script id="samples" type="application/json">__DATA__</script>
+<script>
+const S = JSON.parse(document.getElementById('samples').textContent);
+const LABEL = {
+  summary:'摘要', extract:'抽取', qa_num:'数值问答', qa_logic:'逻辑推理',
+  chart_qa:'图表问答', risk:'风险识别', viewpoint:'观点归纳', term:'术语解释(闭卷)',
+  general:'通用数据'
+};
+const KEY = 'sft-review-v1';
+let marks = {};
+try { marks = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { marks = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch (e) {} };
+
+const groups = [...new Set(S.map(r => r.group))];
+let cur = 0;
+
+/* ---- 数值溯源：与 sft_verify.norm_nums 修好后的逻辑一致 ---- */
+const IGNORE = new Set(Array.from({length:13}, (_,i) => String(i)));
+const norm = n => n.includes('.') ? (n.replace(/0+$/,'').replace(/\.$/,'') || '0') : n;
+const numSet = t => new Set([...String(t).replace(/[,，]/g,'').matchAll(/\d+(?:\.\d+)?/g)].map(m => norm(m[0])));
+const esc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function markNums(out, src) {
+  const html = esc(out);
+  if (!src) return html;
+  const have = numSet(src);
+  return html.replace(/\d+(?:\.\d+)?/g, m => {
+    const k = norm(m.replace(/[,，]/g,''));
+    if (IGNORE.has(k)) return m;
+    return have.has(k) ? `<mark class="ok">${m}</mark>` : `<mark class="bad">${m}</mark>`;
+  });
+}
+function unsupported(r) {
+  if (!r.input) return null;
+  const have = numSet(r.input);
+  return [...numSet(r.output)].filter(n => !have.has(n) && !IGNORE.has(n));
+}
+
+/* ---- 渲染 ---- */
+function renderNav() {
+  const nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  for (const g of groups) {
+    const items = S.filter(r => r.group === g);
+    const done = items.filter(r => marks[r.id]?.v).length;
+    const b = document.createElement('button');
+    b.className = 'grp';
+    b.setAttribute('aria-current', S[cur].group === g ? 'true' : 'false');
+    b.innerHTML = `<span class="row"><span>${LABEL[g] || g}</span>`
+      + `<span class="n">${done}/${items.length}</span></span>`
+      + `<span class="bar"><b style="width:${done / items.length * 100}%"></b></span>`;
+    b.onclick = () => {
+      const t = S.findIndex(r => r.group === g && !marks[r.id]?.v);
+      go(t >= 0 ? t : S.findIndex(r => r.group === g));
+    };
+    nav.appendChild(b);
+  }
+  const done = S.filter(r => marks[r.id]?.v).length;
+  document.getElementById('done').textContent = done;
+  document.getElementById('total').textContent = S.length;
+  for (const v of ['pass','doubt','fail'])
+    document.getElementById('t-' + v).textContent = S.filter(r => marks[r.id]?.v === v).length;
+}
+
+function render() {
+  const r = S[cur];
+  document.getElementById('h-task').textContent = LABEL[r.group] || r.group;
+  document.getElementById('h-org').textContent  = r.org  || '—';
+  document.getElementById('h-date').textContent = r.date || '';
+  document.getElementById('h-doc').textContent  = r.doc ? 'doc ' + r.doc : '';
+  document.getElementById('brandsub').textContent = `${S.length} 条 · ${groups.length} 类`;
+
+  const solo = !r.input;
+  document.getElementById('panes').classList.toggle('solo', solo);
+  document.getElementById('pane-src').style.display = solo ? 'none' : '';
+  if (!solo) document.getElementById('src').textContent = r.input;
+
+  document.getElementById('q').textContent = r.instruction;
+  document.getElementById('a').innerHTML = markNums(r.output, r.input);
+
+  const bad = unsupported(r);
+  const sig = document.getElementById('signals');
+  sig.innerHTML = '';
+  const add = (txt, warn) => {
+    const s = document.createElement('span');
+    s.className = 'sig' + (warn ? ' warn' : '');
+    s.textContent = txt;
+    sig.appendChild(s);
+  };
+  add(`答案 ${r.output.length} 字`);
+  if (solo) add('闭卷 · 无材料');
+  else add(`材料 ${r.input.length} 字`);
+  if (bad && bad.length) add(`无溯源数字 ${bad.length} 个：${bad.slice(0,6).join('、')}`, true);
+  else if (!solo) add('数字全部可溯源');
+
+  document.getElementById('legend').innerHTML = solo
+    ? '闭卷样本没有材料，数值无法机械溯源 —— 请凭常识判断术语解释是否正确、是否引用了不存在的材料。'
+    : '答案里的数字已自动比对材料：<b><mark class="ok">带下划线</mark></b> = 材料中找得到；'
+      + '<b><mark class="bad">高亮</mark></b> = 找不到，需人工判断是派生数字（如"从100到130"说成"增长30%"）还是幻觉。'
+      + '0~12 的小整数当作分条编号，不参与比对。';
+
+  const m = marks[r.id] || {};
+  document.querySelectorAll('.vbtn').forEach(b =>
+    b.setAttribute('aria-pressed', String(m.v === b.dataset.v)));
+  document.getElementById('note').value = m.note || '';
+  document.getElementById('pos').textContent = `${cur + 1} / ${S.length}`;
+  document.querySelectorAll('.pane').forEach(p => p.scrollTop = 0);
+  renderNav();
+}
+
+const go = i => { cur = Math.max(0, Math.min(S.length - 1, i)); render(); };
+function setV(v) {
+  const id = S[cur].id;
+  marks[id] = { ...(marks[id] || {}), v: marks[id]?.v === v ? null : v };
+  if (!marks[id].v) delete marks[id].v;
+  save(); render();
+  if (marks[id]?.v === 'pass') setTimeout(() => go(cur + 1), 120);
+}
+function toast(t) {
+  const el = document.getElementById('toast');
+  el.textContent = t; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+document.querySelectorAll('.vbtn').forEach(b => b.onclick = () => setV(b.dataset.v));
+document.getElementById('prev').onclick = () => go(cur - 1);
+document.getElementById('next').onclick = () => go(cur + 1);
+document.getElementById('note').oninput = e => {
+  const id = S[cur].id;
+  marks[id] = { ...(marks[id] || {}), note: e.target.value };
+  save();
+};
+document.getElementById('jump-next').onclick = () => {
+  const t = S.findIndex(r => !marks[r.id]?.v);
+  if (t < 0) return toast('全部审完了');
+  go(t);
+};
+document.getElementById('copy').onclick = () => {
+  const L = ['抽检结果'];
+  for (const g of groups) {
+    const it = S.filter(r => r.group === g);
+    const c = v => it.filter(r => marks[r.id]?.v === v).length;
+    L.push(`${LABEL[g] || g}: 可用 ${c('pass')} / 存疑 ${c('doubt')} / 不可用 ${c('fail')} / 未审 ${it.filter(r => !marks[r.id]?.v).length}（共 ${it.length}）`);
+  }
+  const flag = S.filter(r => ['doubt','fail'].includes(marks[r.id]?.v));
+  if (flag.length) {
+    L.push('', '标记为存疑/不可用的条目：');
+    for (const r of flag) {
+      const m = marks[r.id];
+      L.push(`- [${m.v === 'fail' ? '不可用' : '存疑'}] ${LABEL[r.group] || r.group} ${r.id}`
+        + (r.doc ? ` doc ${r.doc}` : '') + (m.note ? ` — ${m.note}` : ''));
+      L.push(`  Q: ${r.instruction.slice(0, 110)}`);
+      L.push(`  A: ${r.output.replace(/\s+/g, ' ').slice(0, 160)}`);
+    }
+  }
+  const txt = L.join('\n');
+  (navigator.clipboard?.writeText(txt) ?? Promise.reject())
+    .then(() => toast(`已复制 ${flag.length ? flag.length + ' 条问题样本' : '汇总'}，粘回对话即可`))
+    .catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); toast('已复制，粘回对话即可'); }
+      catch (e) { toast('复制失败，请手动选中下方文本'); }
+      ta.remove();
+    });
+};
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'TEXTAREA' || e.metaKey || e.ctrlKey) return;
+  const k = e.key;
+  if (k === '1') setV('pass');
+  else if (k === '2') setV('doubt');
+  else if (k === '3') setV('fail');
+  else if (k === 'ArrowLeft'  || k === 'k') go(cur - 1);
+  else if (k === 'ArrowRight' || k === 'j') go(cur + 1);
+  else return;
+  e.preventDefault();
+});
+render();
+</script>

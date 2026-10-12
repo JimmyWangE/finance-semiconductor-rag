@@ -1,0 +1,77 @@
+pid @ROOT@/infra/run/nginx.pid;
+error_log @ROOT@/infra/nginx/logs/error.log info;
+worker_processes auto;
+
+events {
+    worker_connections 4096;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    access_log @ROOT@/infra/nginx/logs/access.log;
+    client_body_temp_path @ROOT@/infra/nginx/temp/client;
+    proxy_temp_path @ROOT@/infra/nginx/temp/proxy;
+    client_max_body_size 51m;
+
+    map $http_upgrade $connection_upgrade {
+        default upgrade;
+        '' close;
+    }
+
+    upstream finance_app {
+        server 127.0.0.1:8090;
+        keepalive 32;
+    }
+
+    upstream finance_keycloak {
+        server 127.0.0.1:8180;
+        keepalive 16;
+    }
+
+    server {
+        listen 0.0.0.0:189;
+        server_name _;
+
+        location = /proxy-health {
+            access_log off;
+            add_header Content-Type text/plain;
+            return 200 'ok\n';
+        }
+
+        location /sso/ {
+            proxy_pass http://finance_keycloak;
+            proxy_http_version 1.1;
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_set_header X-Forwarded-Host $http_host;
+            proxy_set_header X-Forwarded-Port 189;
+            proxy_set_header X-Forwarded-Proto http;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_read_timeout 300s;
+        }
+
+        location / {
+            proxy_pass http://finance_app;
+            proxy_http_version 1.1;
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_set_header X-Forwarded-Host $http_host;
+            proxy_set_header X-Forwarded-Port 189;
+            proxy_set_header X-Forwarded-Proto http;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_buffering off;
+            proxy_cache off;
+            chunked_transfer_encoding on;
+            proxy_request_buffering off;
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 1200s;
+            proxy_read_timeout 1200s;
+        }
+    }
+}
+

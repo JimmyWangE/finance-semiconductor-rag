@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>文档与知识库 · 芯研</title><link rel="stylesheet" href="/ui/app.css?v=20260921.1"><link rel="stylesheet" href="/ui/tokens.css"><link rel="stylesheet" href="/ui/hallmark.css"></head>
+<body class="library-page" data-theme="cobalt">
+<a class="skip-link" href="#pdf-file">跳到上传研报</a>
+<main class="app-shell">
+<aside class="sidebar" id="history-panel"><a href="/" class="brand"><span class="brand-mark"><i class="icon" data-icon="microchip"></i></span><span>芯研<span class="brand-sub">SEMI RESEARCH</span></span></a>
+<nav class="primary-nav" aria-label="主导航"><a class="nav-item" href="/"><i class="icon" data-icon="message-square"></i>研报研究</a><a class="nav-item" href="/agent"><i class="icon" data-icon="file-text"></i>金融 Agent</a><a class="nav-item" href="/articles"><i class="icon" data-icon="newspaper"></i>行业文章</a><a class="nav-item" href="/chat"><i class="icon" data-icon="message-square"></i>通用问答</a><a class="nav-item digital-human-link" href="/digital-human/"><i class="icon" data-icon="scan-face"></i>数字人工作台</a><a class="nav-item active" href="/library" aria-current="page"><i class="icon" data-icon="library"></i>文档与知识库</a></nav>
+<div class="sidebar-label"><span>知识库管理</span></div>
+<a class="nav-item" href="#upload-section"><i class="icon" data-icon="upload-cloud"></i>上传研报</a>
+<a class="nav-item" href="#eastmoney-section"><i class="icon" data-icon="refresh-cw"></i>同步最新研报</a>
+<a class="nav-item" href="#document-section"><i class="icon" data-icon="files"></i>文档记录</a>
+<div class="sidebar-spacer" aria-hidden="true"></div><div class="sidebar-footer"><span class="avatar">研</span><div><strong>半导体研究空间</strong><span>Qwen3.8-27B · SFT</span></div><i class="icon" data-icon="shield-check"></i></div>
+</aside>
+<div class="workspace">
+<header class="workspace-header"><div class="heading-left"><button id="toggle-history" class="icon-button mobile-only" aria-label="打开导航" title="打开导航" aria-expanded="false"><i class="icon" data-icon="panel-left-open"></i></button><span class="breadcrumb">研究空间</span><span class="slash">/</span><h1>文档与知识库</h1></div><a href="/" class="quiet"><i class="icon" data-icon="arrow-left"></i> 返回研究台</a></header>
+<div class="library-content">
+<div class="page-title-row"><div><div class="eyebrow">RESEARCH LIBRARY</div><h1>文档与知识库</h1><p id="library-date-range">正在读取研报数据</p></div><span class="notice"><i class="icon" data-icon="shield-check"></i> 本地研究资料</span></div>
+<div class="stats-band"><div class="stat"><span><i class="icon" data-icon="files"></i>已入库研报</span><strong id="stat-documents">—</strong><small>份</small></div><div class="stat"><span><i class="icon" data-icon="quote"></i>检索证据</span><strong id="stat-chunks">—</strong><small>条</small></div><div class="stat"><span><i class="icon" data-icon="scan-text"></i>待校对任务</span><strong id="stat-review">—</strong><small>份</small></div></div>
+<section class="upload-section" id="upload-section"><div class="section-heading"><h2>上传研报</h2><span id="limits" class="notice"></span></div>
+<form id="upload-form"><div class="upload-layout">
+<label class="drop-zone" id="drop-zone"><i class="icon" data-icon="upload-cloud"></i><strong id="selected-file">选择或拖入 PDF 研报</strong><small id="file-size">PDF 文档</small><input id="pdf-file" type="file" accept="application/pdf,.pdf" aria-label="PDF 文件" required></label>
+<div><div class="fields"><label><span>报告标题</span><input id="title" maxlength="200" required placeholder="填写完整研报标题"></label><label><span>发布机构</span><input id="org" list="org-list" maxlength="100" required placeholder="选择或输入机构"><datalist id="org-list"></datalist></label><label><span>发布日期</span><input id="publish-date" type="date" required></label></div><div class="actions"><label class="check"><input id="visual" type="checkbox" checked>识别图表</label><button id="upload-button" type="submit"><i class="icon" data-icon="upload-cloud"></i>上传并解析</button></div></div>
+</div></form></section>
+<section class="upload-section source-sync" id="eastmoney-section"><div class="section-heading"><div><h2>同步券商最新研报</h2><p class="notice">选择券商频道，查询半导体行业近期研报；公开分发渠道为东方财富，跨频道去重后自动解析入库。</p></div><div class="sync-actions"><select id="report-source" aria-label="研报发布机构"><option value="eastmoney">全部半导体研报</option></select><button id="eastmoney-refresh" type="button" class="secondary"><i class="icon" data-icon="refresh-cw"></i>查询最新</button><button id="eastmoney-import" type="button" disabled><i class="icon" data-icon="upload-cloud"></i><span>导入选中</span></button></div></div><div class="table-wrap"><table><thead><tr><th><input id="eastmoney-all" type="checkbox" aria-label="全选新研报"></th><th>报告名称</th><th>机构 / 日期</th><th>页数</th><th>状态</th></tr></thead><tbody id="eastmoney-rows"><tr><td colspan="5" class="empty-table">点击“查询最新”获取券商研报</td></tr></tbody></table></div></section>
+<div id="notice" role="status" aria-live="polite"></div><p id="error" role="alert"></p>
+<section id="document-section"><div class="library-tabs" role="tablist" aria-label="文档视图"><button id="tab-uploads" role="tab" aria-selected="true" aria-controls="upload-view">上传任务 <span id="upload-total"></span></button><button id="tab-corpus" role="tab" aria-selected="false" aria-controls="corpus-view">已入库研报</button></div>
+<div id="upload-view" role="tabpanel" aria-labelledby="tab-uploads"><div class="table-wrap"><table><thead><tr><th>报告名称</th><th>发布机构 / 日期</th><th>处理状态</th><th>操作</th></tr></thead><tbody id="jobs"></tbody></table></div></div>
+<div id="corpus-view" role="tabpanel" aria-labelledby="tab-corpus" hidden><div class="table-toolbar"><label class="search-field"><i class="icon" data-icon="search"></i><input id="document-search" aria-label="搜索研报" placeholder="搜索标题、机构或日期"></label><span id="document-count" class="notice"></span></div><div class="table-wrap"><table><thead><tr><th>研报标题</th><th>发布机构</th><th>发布日期</th></tr></thead><tbody id="document-rows"></tbody></table></div><div class="table-pagination"><span id="document-page"></span><button id="previous-page" class="icon-button secondary" title="上一页" aria-label="上一页"><i class="icon" data-icon="chevron-left"></i></button><button id="next-page" class="icon-button secondary" title="下一页" aria-label="下一页"><i class="icon" data-icon="chevron-right"></i></button></div></div></section>
+</div></div></main>
+<dialog id="review-dialog" class="review-dialog">
+<div class="dialog-header"><div><div class="eyebrow">DOCUMENT REVIEW</div><h2 id="review-title">解析校对</h2></div><button type="button" id="close-review" class="icon-button" title="关闭" aria-label="关闭"><i class="icon" data-icon="x"></i></button></div>
+<div class="review-body"><div class="review-meta"><label><span>报告标题</span><input id="review-name" maxlength="200" required></label><label><span>发布机构</span><input id="review-org" maxlength="100" required></label><label><span>发布日期</span><input id="review-date" type="date" required></label></div>
+<div class="page-tools"><select id="page-select" aria-label="PDF页码"></select><label class="check"><input id="exclude-page" type="checkbox">排除此页</label><a id="pdf-link" target="_blank" rel="noopener"><i class="icon" data-icon="external-link"></i> 打开原 PDF</a><span id="review-state" class="notice"></span></div>
+<div id="page-warnings" class="warnings"></div><p id="review-error" role="alert"></p>
+<div class="review-grid"><div class="original"><img id="page-image" alt="PDF原页及来源位置"></div><div class="blocks" id="blocks"></div></div></div>
+<div class="dialog-footer"><span id="save-state" class="notice"></span><button id="save-review" class="secondary"><i class="icon" data-icon="save"></i>保存校对</button><button id="publish"><i class="icon" data-icon="check-check"></i>确认入库</button></div>
+</dialog>
+<script src="/ui/common.js?v=20260920.1" defer></script><script src="/library.js?v=20260923.1" defer></script>
+</body></html>

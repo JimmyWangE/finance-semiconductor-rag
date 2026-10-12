@@ -1,0 +1,16 @@
+bind 127.0.0.1 ::1
+protected-mode yes
+port 6379
+daemonize yes
+supervised no
+pidfile @ROOT@/infra/run/redis/redis.pid
+loglevel notice
+logfile @ROOT@/infra/run/redis/redis.log
+dir @ROOT@/infra/redis/data
+dbfilename dump.rdb
+appendonly yes
+appendfilename "appendonly.aof"
+appenddirname "appendonlydir"
+appendfsync everysec
+maxmemory-policy noeviction
+requirepass @REDIS_PASSWORD@

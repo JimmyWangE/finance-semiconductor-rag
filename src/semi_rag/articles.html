@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>行业文章 · 芯研</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/ui/app.css?v=20260921.1">
+<link rel="stylesheet" href="/ui/tokens.css">
+<link rel="stylesheet" href="/ui/hallmark.css">
+<link rel="stylesheet" href="/ui/articles.css?v=20260922.1">
+</head>
+<body class="articles-page" data-theme="cobalt">
+<a class="skip-link" href="#article-search">跳到文章检索</a>
+<main class="app-shell">
+<aside class="sidebar" id="history-panel">
+<a href="/" class="brand"><span class="brand-mark"><i class="icon" data-icon="microchip"></i></span><span>芯研<span class="brand-sub">SEMI RESEARCH</span></span></a>
+<nav class="primary-nav" aria-label="主导航"><a class="nav-item" href="/"><i class="icon" data-icon="message-square"></i>研报研究</a><a class="nav-item" href="/agent"><i class="icon" data-icon="file-text"></i>金融 Agent</a><a class="nav-item active" href="/articles" aria-current="page"><i class="icon" data-icon="newspaper"></i>行业文章</a><a class="nav-item" href="/chat"><i class="icon" data-icon="message-square"></i>通用问答</a><a class="nav-item digital-human-link" href="/digital-human/"><i class="icon" data-icon="scan-face"></i>数字人工作台</a><a class="nav-item" href="/library"><i class="icon" data-icon="library"></i>文档与知识库</a></nav>
+<div class="sidebar-spacer" aria-hidden="true"></div>
+<div class="sidebar-footer"><span class="avatar">阅</span><div><strong>行业文章库</strong><span>半导体媒体与公众号</span></div><i class="icon" data-icon="shield-check"></i></div>
+</aside>
+<div class="workspace">
+<header class="workspace-header">
+<div class="heading-left"><button id="toggle-history" class="icon-button mobile-only" title="打开导航" aria-label="打开导航" aria-expanded="false"><i class="icon" data-icon="panel-left-open"></i></button><span class="breadcrumb">研究空间</span><span class="slash">/</span><h1>行业文章</h1></div>
+<div class="heading-actions"><span id="sync-state" class="service-state">资料已就绪</span><button id="sync-articles" class="secondary"><i class="icon" data-icon="refresh-cw"></i>更新文章</button><button id="import-open" class="secondary"><i class="icon" data-icon="plus"></i>导入链接</button></div>
+</header>
+<div class="article-workspace">
+<aside class="publication-panel" aria-label="文章来源">
+<div class="panel-heading"><div><span class="eyebrow">PUBLICATIONS</span><h2>订阅源</h2></div><div class="panel-actions"><span id="source-total" class="count-label">—</span><button id="feed-open" class="icon-button" title="配置订阅源" aria-label="配置订阅源"><i class="icon" data-icon="sliders-horizontal"></i></button></div></div>
+<button class="source-row active" data-source="" aria-pressed="true"><span class="source-monogram all"><i class="icon" data-icon="newspaper"></i></span><span><strong>全部文章</strong><small>跨来源浏览</small></span><b id="all-count">—</b></button>
+<div id="source-list" class="source-list" aria-live="polite"></div>
+<div class="source-note"><i class="icon" data-icon="refresh-cw"></i><div><p id="feed-summary">正在读取订阅状态</p><a href="/rss-admin" target="_blank" rel="noopener noreferrer">公众号管理 <i class="icon" data-icon="external-link"></i></a></div></div>
+</aside>
+<section class="article-index" aria-label="文章列表">
+<div class="index-toolbar">
+<label class="article-search" for="article-search"><i class="icon" data-icon="search"></i><input id="article-search" type="search" placeholder="搜索标题、作者或内容摘要" autocomplete="off"><span class="sr-only">搜索文章</span></label>
+<label class="unread-filter"><input id="unread-only" type="checkbox">只看未读</label>
+</div>
+<div class="index-summary"><div><strong id="current-source">全部文章</strong><span id="result-count">正在读取</span></div><select id="sort-order" aria-label="文章排序"><option value="latest">最新发布</option><option value="imported">最近导入</option></select></div>
+<div id="article-list" class="article-list" role="list"></div>
+</section>
+<section class="article-reader" id="article-reader" aria-label="文章阅读区">
+<div class="reader-empty" id="reader-empty"><i class="icon" data-icon="newspaper"></i><h2>选择一篇文章开始阅读</h2></div>
+<div class="reader-content" id="reader-content" hidden>
+<header class="reader-toolbar"><button id="reader-back" class="icon-button reader-back" title="返回文章列表" aria-label="返回文章列表"><i class="icon" data-icon="arrow-left"></i></button><div><span id="reader-source"></span><strong id="reader-title"></strong></div><a id="reader-original" class="secondary" target="_blank" rel="noopener noreferrer"><i class="icon" data-icon="external-link"></i>阅读原文</a></header>
+<iframe id="article-frame" title="文章正文" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>
+</div>
+</section>
+</div>
+</div>
+</main>
+<dialog id="import-dialog" class="compact-dialog article-dialog">
+<form id="import-form">
+<div class="dialog-title"><div><span class="eyebrow">ADD ARTICLE</span><h2>导入公众号文章</h2></div><button type="button" id="import-close" class="icon-button" aria-label="关闭"><i class="icon" data-icon="x"></i></button></div>
+<label><span>所属公众号</span><select id="import-source" required></select></label>
+<label><span>微信文章链接</span><input id="import-url" type="url" required placeholder="https://mp.weixin.qq.com/s/..."></label>
+<p id="import-error" role="alert"></p>
+<div class="dialog-actions"><button type="button" id="import-cancel" class="secondary">取消</button><button id="import-submit" type="submit"><i class="icon" data-icon="plus"></i>导入文章</button></div>
+</form>
+</dialog>
+<dialog id="feed-dialog" class="compact-dialog article-dialog">
+<form id="feed-form">
+<div class="dialog-title"><div><span class="eyebrow">SOURCE SETTINGS</span><h2>配置订阅源</h2></div><button type="button" id="feed-close" class="icon-button" aria-label="关闭"><i class="icon" data-icon="x"></i></button></div>
+<p class="dialog-copy">行业媒体已预置官方 RSS。公众号请先在<a href="/rss-admin" target="_blank" rel="noopener noreferrer">公众号管理</a>中添加订阅，再点击“更新文章”。</p>
+<label><span>订阅源</span><select id="feed-source" required></select></label>
+<label><span>RSS 地址</span><input id="feed-url" type="url" placeholder="http://127.0.0.1:192/feeds/...rss"></label>
+<p id="feed-error" role="alert"></p>
+<div class="dialog-actions"><button type="button" id="feed-cancel" class="secondary">取消</button><button id="feed-submit" type="submit"><i class="icon" data-icon="save"></i>保存配置</button></div>
+</form>
+</dialog>
+<script src="/ui/common.js?v=20260920.2" defer></script><script src="/articles.js?v=20260929.1" defer></script>
+</body></html>

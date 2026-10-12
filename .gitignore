@@ -1,0 +1,96 @@
+# Local environments and generated Python files
+.venv*/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+configs/rag.json
+infra/secrets/*
+!infra/secrets/.gitignore
+
+# Runtime state, logs and local services
+data/
+artifacts/
+output/
+logs/
+*.log
+*.pid
+infra/run/*
+!infra/run/.gitignore
+infra/nginx/logs/*
+!infra/nginx/logs/.gitignore
+infra/nginx/temp/*
+!infra/nginx/temp/.gitignore
+infra/postgres/data/*
+!infra/postgres/.gitignore
+infra/postgres/logs/*
+infra/postgres/socket/*
+infra/redis/data/*
+!infra/redis/.gitignore
+
+# Downloaded runtimes, model weights and local caches
+infra/keycloak/downloads/
+infra/keycloak/keycloak-*/
+models/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.rar
+*.zip
+*.tar.gz
+
+# Local PDF and media corpora
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# Generated evaluation and migration snapshots
+*.sqlite3
+*.sqlite
+*.db
+*.rdb
+*.aof
+*.jsonl
+!docs/**/*.jsonl
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Internal-only reports and deployment snapshots
+.hallmark/
+RAG_WORK_PROGRESS_*.md
+WORK_LOG_*.md
+实验报告.md
+docs/ENTERPRISE_INTERNAL_ROADMAP.md
+docs/ENTERPRISE_PHASE_VALIDATION.md
+docs/LOCAL_ENTERPRISE_STACK.md
+docs/TRADINGAGENTS_A_SHARE_VALIDATION_*.md
+docs/TRADINGAGENTS_A_SHARE_VALIDATION_*.json
+docs/TRADINGAGENTS_INTEGRATION.md
+
+# Training implementation and local model experiments are outside this repository scope
+src/build_general_mix.py
+src/eval_ceval.py
+src/eval_generate.py
+src/eval_score.py
+src/make_review.py
+src/merge_lora.py
+src/sft_*.py
+src/train_sft.py
+run_step3.sh
+run_step4.sh

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+unset RAG_AUTH_MODE RAG_PUBLIC_ORIGIN RAG_DATABASE_URL RAG_REDIS_URL
+unset RAG_TASK_BACKEND RAG_SESSION_SECRET_FILE RAG_OIDC_ISSUER
+export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+cd "$ROOT"
+exec "$ROOT/.venv-rag/bin/python" -m semi_rag serve --host 0.0.0.0 --port 189 --trusted-network
+

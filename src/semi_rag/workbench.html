@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>半导体研报研究台</title>
+<link rel="stylesheet" href="/ui/app.css?v=20260921.1">
+<link rel="stylesheet" href="/ui/tokens.css">
+<link rel="stylesheet" href="/ui/hallmark.css">
+</head>
+<body class="research-page" data-theme="cobalt">
+<a class="skip-link" href="#query">跳到研究问题</a>
+<main class="app-shell">
+<aside class="sidebar" id="history-panel">
+<a href="/" class="brand"><span class="brand-mark"><i class="icon" data-icon="microchip"></i></span><span>芯研<span class="brand-sub">SEMI RESEARCH</span></span></a>
+<nav class="primary-nav" aria-label="主导航"><a class="nav-item active" href="/" aria-current="page"><i class="icon" data-icon="message-square"></i>研报研究</a><a class="nav-item" href="/agent"><i class="icon" data-icon="file-text"></i>金融 Agent</a><a class="nav-item" href="/articles"><i class="icon" data-icon="newspaper"></i>行业文章</a><a class="nav-item" href="/chat"><i class="icon" data-icon="message-square"></i>通用问答</a><a class="nav-item digital-human-link" href="/digital-human/"><i class="icon" data-icon="scan-face"></i>数字人工作台</a><a class="nav-item" href="/library"><i class="icon" data-icon="library"></i>文档与知识库</a></nav>
+<button id="new-conversation" class="new-conversation secondary"><i class="icon" data-icon="plus"></i>新建研究会话</button>
+<div class="sidebar-label"><span>会话历史</span><span id="session-total"></span></div>
+<nav id="conversations" class="session-list" aria-label="会话列表"></nav>
+<button id="more-conversations" class="quiet" hidden>加载更多</button>
+<div class="sidebar-footer"><span class="avatar">研</span><div><strong>半导体研究空间</strong><span>Qwen3.8-27B · SFT</span></div><i class="icon" data-icon="shield-check"></i></div>
+</aside>
+<div class="workspace">
+<header class="workspace-header"><div class="heading-left"><button id="toggle-history" class="icon-button mobile-only" title="会话历史" aria-label="会话历史" aria-expanded="false"><i class="icon" data-icon="panel-left-open"></i></button><span class="breadcrumb">研究工作台</span><span class="slash">/</span><h1 id="conversation-title">新会话</h1></div><div class="heading-actions"><span id="health" class="service-state">连接中</span><button id="rename-conversation" class="icon-button" title="重命名会话" aria-label="重命名" disabled><i class="icon" data-icon="pencil"></i></button><button id="delete-conversation" class="icon-button danger" title="删除会话" aria-label="删除会话" disabled><i class="icon" data-icon="trash-2"></i></button></div></header>
+<div class="research-grid">
+<section class="conversation">
+<div class="conversation-toolbar"><div class="section-kicker"><i class="icon" data-icon="message-square"></i>研究对话</div><details class="filter-panel"><summary><i class="icon" data-icon="sliders-horizontal"></i>检索范围<span id="filter-count"></span></summary><div class="filters">
+<label><span>研究机构</span><select id="org"><option value="">全部机构</option></select></label>
+<label><span>发布日期起</span><input type="date" id="date_from"></label><label><span>发布日期止</span><input type="date" id="date_to"></label><label><span>截至日期</span><input type="date" id="as_of"></label>
+<label><span>证据类型</span><select id="kind"><option value="">全部类型</option><option value="text">正文</option><option value="table">表格</option><option value="chart">图表</option></select></label>
+</div></details></div>
+<div id="thread" role="log" aria-label="研究对话"></div>
+<div class="composer-area">
+<form id="query-form" class="composer">
+<label for="query" class="sr-only">研究问题</label>
+<div id="attachments" class="attachment-tray" hidden></div><textarea id="query" maxlength="1000" placeholder="提出研究问题，或继续追问…"></textarea>
+<div class="commands"><div class="composer-tools"><button id="attach-media" type="button" class="icon-button quiet" title="添加图片或视频" aria-label="添加图片或视频"><i class="icon" data-icon="media-add"></i></button><input id="media-input" class="sr-only" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"><div class="modes" aria-label="查询模式"><label><input type="radio" name="mode" value="ask" checked><i class="icon" data-icon="message-square"></i>研究问答</label><label><input type="radio" name="mode" value="search"><i class="icon" data-icon="search"></i>原文检索</label></div></div><button id="submit" class="send-button" title="发送问题" aria-label="发送"><i class="icon" data-icon="arrow-up"></i></button></div>
+</form>
+<div class="composer-meta"><span id="status" role="status" aria-live="polite"></span><span class="model-label">Qwen3.8-27B</span></div><p id="error" role="alert"></p>
+</div>
+</section>
+<aside class="sources"><div class="evidence-heading"><h2><i class="icon" data-icon="quote"></i>来源证据</h2><span id="source-count"></span></div><div id="sources"></div><div class="corpus-footer"><i class="icon" data-icon="library"></i><span id="coverage">正在读取知识库</span></div></aside>
+</div>
+</div>
+</main>
+<dialog id="rename-dialog" class="compact-dialog"><form id="rename-form"><h2>重命名会话</h2><label for="rename-title">会话名称</label><input id="rename-title" aria-label="会话名称" maxlength="100" required><div class="dialog-actions"><button id="cancel-rename" type="button" class="secondary">取消</button><button type="submit">保存</button></div></form></dialog>
+<script src="/ui/common.js?v=20260920.2" defer></script><script src="/ui/media.js?v=20260920.2" defer></script><script src="/workbench.js?v=20260920.2" defer></script>
+</body></html>

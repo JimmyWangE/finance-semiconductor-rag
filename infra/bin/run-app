@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+set -a
+# shellcheck source=/dev/null
+source "$ROOT/infra/secrets/app.env"
+set +a
+export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+cd "$ROOT"
+exec "$ROOT/.venv-rag/bin/python" -m semi_rag serve --host 127.0.0.1 --port 8090
+

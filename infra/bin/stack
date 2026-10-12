@@ -1,0 +1,510 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+INFRA="$ROOT/infra"
+CONFIG="$INFRA/config"
+RUN="$INFRA/run"
+SECRETS="$INFRA/secrets"
+PG_BIN="/usr/lib/postgresql/16/bin"
+PG_DATA="$INFRA/postgres/data"
+PG_SOCKET="$INFRA/postgres/socket"
+REDIS_DATA="$INFRA/redis/data"
+REDIS_RUN="$RUN/redis"
+KEYCLOAK_ROOT="$INFRA/keycloak"
+NGINX_ROOT="$INFRA/nginx"
+PYTHON="$ROOT/.venv-rag/bin/python"
+PUBLIC_ORIGIN="${PUBLIC_ORIGIN:-http://127.0.0.1:189}"
+
+# shellcheck source=/dev/null
+source "$INFRA/versions.env"
+KEYCLOAK_HOME="$KEYCLOAK_ROOT/keycloak-$KEYCLOAK_VERSION"
+KEYCLOAK_ARCHIVE="$KEYCLOAK_ROOT/downloads/keycloak-$KEYCLOAK_VERSION.tar.gz"
+
+log() { printf '[stack] %s\n' "$*"; }
+fail() { printf '[stack] ERROR: %s\n' "$*" >&2; exit 1; }
+require_root() { [[ ${EUID:-$(id -u)} -eq 0 ]] || fail 'run as root (sudo infra/bin/stack ...)'; }
+
+secret() {
+    local path="$SECRETS/$1"
+    if [[ ! -s "$path" ]]; then
+        (umask 077; openssl rand -hex "${2:-32}" > "$path")
+    fi
+    chmod 600 "$path"
+}
+
+read_secret() { tr -d '\r\n' < "$SECRETS/$1"; }
+
+render() {
+    local source="$1" target="$2"
+    "$PYTHON" - "$source" "$target" "$ROOT" "$PUBLIC_ORIGIN" \
+        "$(read_secret redis_password)" "$(read_secret keycloak_client_secret)" \
+        "$(read_secret rag_admin_password)" "$(read_secret rag_visitor_password)" <<'PY'
+import sys
+from pathlib import Path
+
+source, target, root, origin, redis_password, client_secret, admin_password, visitor_password = sys.argv[1:]
+text = Path(source).read_text()
+values = {
+    '@ROOT@': root,
+    '@PUBLIC_ORIGIN@': origin,
+    '@REDIS_PASSWORD@': redis_password,
+    '@KEYCLOAK_CLIENT_SECRET@': client_secret,
+    '@RAG_ADMIN_PASSWORD@': admin_password,
+    '@RAG_VISITOR_PASSWORD@': visitor_password,
+}
+for marker, value in values.items():
+    text = text.replace(marker, value)
+Path(target).parent.mkdir(parents=True, exist_ok=True)
+Path(target).write_text(text)
+PY
+}
+
+install_packages() {
+    local missing=0
+    for command in "$PG_BIN/postgres" redis-server java nginx curl; do
+        [[ -x "$command" ]] || command -v "$command" >/dev/null 2>&1 || missing=1
+    done
+    if (( missing )); then
+        log 'installing PostgreSQL 16, Redis 7, OpenJDK 21, Nginx and curl'
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            postgresql-16 postgresql-client-16 redis-server openjdk-21-jre-headless nginx-light curl
+    fi
+}
+
+prepare_directories() {
+    getent passwd keycloak >/dev/null || \
+        useradd --system --home-dir "$KEYCLOAK_ROOT" --shell /usr/sbin/nologin keycloak
+    install -d -m 700 "$SECRETS"
+    install -d -o postgres -g postgres -m 700 "$PG_DATA" "$PG_SOCKET" "$INFRA/postgres/logs"
+    install -d -o redis -g redis -m 750 "$REDIS_DATA" "$REDIS_RUN"
+    install -d -o keycloak -g keycloak -m 750 "$KEYCLOAK_ROOT" "$KEYCLOAK_ROOT/downloads"
+    install -d -m 755 "$RUN" "$NGINX_ROOT/logs" "$NGINX_ROOT/temp/client" "$NGINX_ROOT/temp/proxy"
+}
+
+generate_secrets() {
+    for name in postgres_rag_password postgres_keycloak_password redis_password \
+                keycloak_client_secret keycloak_admin_password \
+                rag_visitor_password session_secret metrics_token; do
+        secret "$name" 32
+    done
+    if [[ ! -s "$SECRETS/rag_admin_password" ]]; then
+        (umask 077; printf 'admin\n' > "$SECRETS/rag_admin_password")
+    fi
+    chmod 600 "$SECRETS/rag_admin_password"
+}
+
+render_configuration() {
+    render "$CONFIG/postgresql.conf.template" "$CONFIG/postgresql.conf"
+    render "$CONFIG/redis.conf.template" "$CONFIG/redis.conf"
+    render "$CONFIG/keycloak.conf.template" "$CONFIG/keycloak.conf"
+    render "$CONFIG/nginx.conf.template" "$CONFIG/nginx.conf"
+    render "$KEYCLOAK_ROOT/realm-finance.json.template" "$KEYCLOAK_ROOT/realm-finance.json"
+    chmod 644 "$CONFIG/postgresql.conf" "$CONFIG/nginx.conf"
+    chmod 640 "$CONFIG/redis.conf" "$CONFIG/keycloak.conf"
+
+    local rag_db redis_password worker
+    rag_db="$(read_secret postgres_rag_password)"
+    redis_password="$(read_secret redis_password)"
+    worker="$(hostname)-finance-rag"
+    {
+        printf 'RAG_AUTH_MODE=oidc\n'
+        printf 'RAG_PUBLIC_ORIGIN=%s\n' "$PUBLIC_ORIGIN"
+        printf 'RAG_COOKIE_SECURE=false\n'
+        printf 'RAG_SESSION_SECRET_FILE=%s/session_secret\n' "$SECRETS"
+        printf 'RAG_SESSION_TTL_SECONDS=28800\n'
+        printf 'RAG_OIDC_ISSUER=%s/sso/realms/finance\n' "$PUBLIC_ORIGIN"
+        printf 'RAG_OIDC_CLIENT_ID=finance-rag\n'
+        printf 'RAG_OIDC_CLIENT_SECRET_FILE=%s/keycloak_client_secret\n' "$SECRETS"
+        printf 'RAG_OIDC_REDIRECT_URI=%s/auth/callback\n' "$PUBLIC_ORIGIN"
+        printf "RAG_OIDC_SCOPES='openid profile email'\n"
+        printf 'RAG_OIDC_ADMIN_GROUPS=admin\n'
+        printf 'RAG_TASK_BACKEND=postgres\n'
+        printf 'RAG_DATABASE_URL=postgresql://rag_app:%s@127.0.0.1:5432/finance_rag\n' "$rag_db"
+        printf 'RAG_REDIS_URL=redis://:%s@127.0.0.1:6379/0\n' "$redis_password"
+        printf 'RAG_REDIS_STREAM=rag:tasks\n'
+        printf 'RAG_REDIS_GROUP=rag-workers\n'
+        printf 'RAG_WORKER_ID=%s\n' "$worker"
+        printf 'RAG_TASK_LEASE_SECONDS=60\n'
+        printf 'RAG_METRICS_TOKEN=%s\n' "$(read_secret metrics_token)"
+        printf 'RAG_LOG_FORMAT=json\n'
+        printf 'RAG_LOG_LEVEL=INFO\n'
+        printf 'NO_PROXY=127.0.0.1,localhost\n'
+        printf 'no_proxy=127.0.0.1,localhost\n'
+    } > "$SECRETS/app.env"
+    chmod 600 "$SECRETS/app.env"
+}
+
+install_keycloak() {
+    if [[ ! -f "$KEYCLOAK_ARCHIVE" ]]; then
+        log "downloading Keycloak $KEYCLOAK_VERSION"
+        curl -fL --retry 3 --connect-timeout 20 -o "$KEYCLOAK_ARCHIVE.part" \
+            "https://github.com/keycloak/keycloak/releases/download/$KEYCLOAK_VERSION/keycloak-$KEYCLOAK_VERSION.tar.gz"
+        mv "$KEYCLOAK_ARCHIVE.part" "$KEYCLOAK_ARCHIVE"
+    fi
+    printf '%s  %s\n' "$KEYCLOAK_SHA256" "$KEYCLOAK_ARCHIVE" | sha256sum -c -
+    if [[ ! -x "$KEYCLOAK_HOME/bin/kc.sh" ]]; then
+        tar -xzf "$KEYCLOAK_ARCHIVE" -C "$KEYCLOAK_ROOT"
+    fi
+    chown -R keycloak:keycloak "$KEYCLOAK_HOME"
+    install -d -o keycloak -g keycloak -m 750 "$KEYCLOAK_HOME/data/import"
+    install -o keycloak -g keycloak -m 640 "$KEYCLOAK_ROOT/realm-finance.json" \
+        "$KEYCLOAK_HOME/data/import/finance-realm.json"
+    install -o keycloak -g keycloak -m 640 "$CONFIG/keycloak.conf" \
+        "$KEYCLOAK_HOME/conf/finance.conf"
+    local build_hash built_hash=''
+    build_hash="$(sha256sum "$KEYCLOAK_HOME/conf/finance.conf" | awk '{print $1}')"
+    [[ -f "$KEYCLOAK_HOME/.finance-built" ]] && built_hash="$(cat "$KEYCLOAK_HOME/.finance-built")"
+    if [[ "$built_hash" != "$build_hash" ]]; then
+        log 'building optimized Keycloak distribution'
+        setpriv --reuid=keycloak --regid=keycloak --init-groups \
+            env KC_DB=postgres JAVA_OPTS_KC_HEAP='-Xms256m -Xmx1024m' \
+            "$KEYCLOAK_HOME/bin/kc.sh" --config-file="$KEYCLOAK_HOME/conf/finance.conf" build --db=postgres
+        printf '%s\n' "$build_hash" > "$KEYCLOAK_HOME/.finance-built"
+        chown keycloak:keycloak "$KEYCLOAK_HOME/.finance-built"
+    fi
+}
+
+init_postgres() {
+    if [[ ! -f "$PG_DATA/PG_VERSION" ]]; then
+        log 'initializing project-local PostgreSQL cluster'
+        runuser -u postgres -- "$PG_BIN/initdb" -D "$PG_DATA" --encoding=UTF8 \
+            --locale=C.UTF-8 --auth-local=peer --auth-host=scram-sha-256
+        printf "include = '%s'\n" "$CONFIG/postgresql.conf" >> "$PG_DATA/postgresql.conf"
+    fi
+    install -o postgres -g postgres -m 600 "$CONFIG/pg_hba.conf" "$PG_DATA/pg_hba.conf"
+    chown -R postgres:postgres "$PG_DATA" "$PG_SOCKET" "$INFRA/postgres/logs"
+}
+
+postgres_running() {
+    runuser -u postgres -- "$PG_BIN/pg_ctl" -D "$PG_DATA" status >/dev/null 2>&1
+}
+
+start_postgres() {
+    postgres_running && return
+    ss -ltn | grep -qE '127\.0\.0\.1:5432[[:space:]]' && fail 'port 5432 is already in use'
+    log 'starting PostgreSQL'
+    runuser -u postgres -- "$PG_BIN/pg_ctl" -D "$PG_DATA" \
+        -l "$INFRA/postgres/logs/launcher.log" start >/dev/null
+    for _ in {1..30}; do
+        "$PG_BIN/pg_isready" -h 127.0.0.1 -p 5432 >/dev/null 2>&1 && return
+        sleep 1
+    done
+    fail 'PostgreSQL did not become ready'
+}
+
+configure_databases() {
+    local rag_password keycloak_password
+    rag_password="$(read_secret postgres_rag_password)"
+    keycloak_password="$(read_secret postgres_keycloak_password)"
+    runuser -u postgres -- "$PG_BIN/psql" -h "$PG_SOCKET" -d postgres \
+        -v ON_ERROR_STOP=1 -v rag_password="$rag_password" -v keycloak_password="$keycloak_password" <<'SQL'
+SELECT format('CREATE ROLE rag_app LOGIN PASSWORD %L', :'rag_password')
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'rag_app') \gexec
+SELECT format('CREATE ROLE keycloak_app LOGIN PASSWORD %L', :'keycloak_password')
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'keycloak_app') \gexec
+ALTER ROLE rag_app PASSWORD :'rag_password';
+ALTER ROLE keycloak_app PASSWORD :'keycloak_password';
+SELECT 'CREATE DATABASE finance_rag OWNER rag_app'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'finance_rag') \gexec
+SELECT 'CREATE DATABASE keycloak OWNER keycloak_app'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'keycloak') \gexec
+REVOKE ALL ON DATABASE finance_rag FROM PUBLIC;
+REVOKE ALL ON DATABASE keycloak FROM PUBLIC;
+GRANT CONNECT, TEMPORARY ON DATABASE finance_rag TO rag_app;
+GRANT CONNECT, TEMPORARY ON DATABASE keycloak TO keycloak_app;
+SQL
+    set -a
+    # shellcheck source=/dev/null
+    source "$SECRETS/app.env"
+    set +a
+    "$PYTHON" "$ROOT/scripts/apply_migrations.py"
+    "$PYTHON" "$ROOT/scripts/migrate_legacy_tasks.py" --data-dir "$ROOT/data" --dry-run
+}
+
+start_redis() {
+    if [[ -f "$REDIS_RUN/redis.pid" ]] && kill -0 "$(cat "$REDIS_RUN/redis.pid")" 2>/dev/null; then return; fi
+    ss -ltn | grep -qE '127\.0\.0\.1:6379[[:space:]]' && fail 'port 6379 is already in use'
+    log 'starting Redis'
+    chown -R redis:redis "$REDIS_DATA"
+    install -o redis -g redis -m 640 "$CONFIG/redis.conf" "$REDIS_RUN/redis.conf"
+    runuser -u redis -- redis-server "$REDIS_RUN/redis.conf"
+    for _ in {1..30}; do
+        REDISCLI_AUTH="$(read_secret redis_password)" redis-cli -h 127.0.0.1 ping 2>/dev/null | grep -q PONG && return
+        sleep 1
+    done
+    fail 'Redis did not become ready'
+}
+
+keycloak_running() {
+    [[ -s "$RUN/keycloak.pid" ]] && kill -0 "$(cat "$RUN/keycloak.pid")" 2>/dev/null
+}
+
+start_keycloak() {
+    if ! keycloak_running; then
+        ss -ltn | grep -qE '127\.0\.0\.1:8180[[:space:]]' && fail 'port 8180 is already in use'
+        : > "$RUN/keycloak.log"
+        chown keycloak:keycloak "$RUN/keycloak.log"
+        log 'starting Keycloak'
+        start-stop-daemon --start --background --make-pidfile --pidfile "$RUN/keycloak.pid" \
+            --chuid keycloak:keycloak --chdir "$KEYCLOAK_HOME" --output "$RUN/keycloak.log" \
+            --startas /usr/bin/env -- KC_DB_PASSWORD="$(read_secret postgres_keycloak_password)" \
+                KC_BOOTSTRAP_ADMIN_USERNAME=kc-admin \
+                KC_BOOTSTRAP_ADMIN_PASSWORD="$(read_secret keycloak_admin_password)" \
+                JAVA_OPTS_KC_HEAP='-Xms256m -Xmx1024m' \
+                "$KEYCLOAK_HOME/bin/kc.sh" --config-file="$KEYCLOAK_HOME/conf/finance.conf" \
+                start --optimized --import-realm
+    fi
+    for _ in {1..180}; do
+        curl --noproxy '*' -fsS http://127.0.0.1:9000/sso/health/ready >/dev/null 2>&1 && return
+        if ! keycloak_running; then
+            tail -80 "$RUN/keycloak.log" >&2
+            fail 'Keycloak exited during startup'
+        fi
+        sleep 1
+    done
+    tail -80 "$RUN/keycloak.log" >&2
+    fail 'Keycloak did not become ready'
+}
+
+app_running() {
+    [[ -s "$RUN/app.pid" ]] && kill -0 "$(cat "$RUN/app.pid")" 2>/dev/null
+}
+
+legacy_app_running() {
+    [[ -s "$RUN/legacy-app.pid" ]] && kill -0 "$(cat "$RUN/legacy-app.pid")" 2>/dev/null
+}
+
+migrate_legacy_tasks() {
+    set -a
+    # shellcheck source=/dev/null
+    source "$SECRETS/app.env"
+    set +a
+    "$PYTHON" - "$ROOT/data" <<'PY'
+import sqlite3, sys
+from pathlib import Path
+
+active = {'running', 'parsing', 'recognizing', 'indexing'}
+found = []
+for path in (Path(sys.argv[1]) / 'finance_agent_jobs.sqlite3', Path(sys.argv[1]) / 'rag/uploads/jobs.sqlite3'):
+    if not path.exists():
+        continue
+    with sqlite3.connect(path) as db:
+        for status, count in db.execute('SELECT status,count(*) FROM jobs GROUP BY status'):
+            if status in active and count:
+                found.append(f'{path}:{status}={count}')
+if found:
+    raise SystemExit('active legacy tasks prevent migration: ' + ', '.join(found))
+PY
+    "$PYTHON" "$ROOT/scripts/migrate_legacy_tasks.py" --data-dir "$ROOT/data"
+}
+
+start_app() {
+    if ! app_running; then
+        ss -ltn | grep -qE '127\.0\.0\.1:8090[[:space:]]' && fail 'port 8090 is already in use'
+        log 'starting FastAPI on 127.0.0.1:8090'
+        : > "$RUN/app.log"
+        start-stop-daemon --start --background --make-pidfile --pidfile "$RUN/app.pid" \
+            --chdir "$ROOT" --output "$RUN/app.log" --startas "$INFRA/bin/run-app"
+    fi
+    for _ in {1..300}; do
+        local status
+        status="$(curl --noproxy '*' -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/health 2>/dev/null || true)"
+        [[ "$status" == 200 || "$status" == 503 ]] && return
+        if ! app_running; then
+            tail -80 "$RUN/app.log" >&2
+            fail 'FastAPI exited during startup'
+        fi
+        sleep 1
+    done
+    tail -80 "$RUN/app.log" >&2
+    fail 'FastAPI did not become ready'
+}
+
+stop_old_app() {
+    local pids
+    pids="$(pgrep -f 'semi_rag serve .*--port 189' || true)"
+    [[ -z "$pids" ]] && return 0
+    log "stopping legacy FastAPI on port 189 (PID ${pids//$'\n'/,})"
+    printf '%s\n' "$pids" > "$RUN/legacy-app.pids"
+    kill $pids
+    for _ in {1..30}; do
+        pgrep -f 'semi_rag serve .*--port 189' >/dev/null || return 0
+        sleep 1
+    done
+    kill -KILL $pids 2>/dev/null || true
+}
+
+nginx_running() {
+    [[ -s "$RUN/nginx.pid" ]] && kill -0 "$(cat "$RUN/nginx.pid")" 2>/dev/null
+}
+
+start_nginx() {
+    nginx_running && return
+    log 'validating and starting Nginx on port 189'
+    nginx -t -c "$CONFIG/nginx.conf" -p "$NGINX_ROOT/"
+    nginx -c "$CONFIG/nginx.conf" -p "$NGINX_ROOT/"
+    for _ in {1..30}; do
+        curl -fsS "$PUBLIC_ORIGIN/proxy-health" >/dev/null 2>&1 && return
+        sleep 1
+    done
+    return 1
+}
+
+stop_pid() {
+    local file="$1" name="$2"
+    [[ -s "$file" ]] || return 0
+    local pid
+    pid="$(cat "$file")"
+    if kill -0 "$pid" 2>/dev/null; then
+        log "stopping $name (PID $pid)"
+        kill "$pid" 2>/dev/null || true
+        for _ in {1..30}; do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+        kill -KILL "$pid" 2>/dev/null || true
+    fi
+    rm -f "$file"
+}
+
+stop_nginx() {
+    if nginx_running; then
+        log 'stopping Nginx'
+        nginx -s quit -c "$CONFIG/nginx.conf" -p "$NGINX_ROOT/" || true
+        for _ in {1..30}; do nginx_running || break; sleep 1; done
+    fi
+    rm -f "$RUN/nginx.pid"
+}
+
+stop_app() { stop_pid "$RUN/app.pid" 'FastAPI'; }
+stop_keycloak() { stop_pid "$RUN/keycloak.pid" 'Keycloak'; }
+
+stop_redis() {
+    if [[ -s "$REDIS_RUN/redis.pid" ]] && kill -0 "$(cat "$REDIS_RUN/redis.pid")" 2>/dev/null; then
+        local pid
+        pid="$(cat "$REDIS_RUN/redis.pid")"
+        log 'stopping Redis'
+        REDISCLI_AUTH="$(read_secret redis_password)" redis-cli -h 127.0.0.1 shutdown save >/dev/null 2>&1 || true
+        for _ in {1..30}; do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+    fi
+    rm -f "$REDIS_RUN/redis.pid"
+}
+
+stop_postgres() {
+    if postgres_running; then
+        log 'stopping PostgreSQL'
+        runuser -u postgres -- "$PG_BIN/pg_ctl" -D "$PG_DATA" stop -m fast >/dev/null
+    fi
+}
+
+start_legacy_app() {
+    legacy_app_running && return
+    log 'restoring legacy FastAPI on port 189'
+    : > "$RUN/legacy-app.log"
+    start-stop-daemon --start --background --make-pidfile --pidfile "$RUN/legacy-app.pid" \
+        --chdir "$ROOT" --output "$RUN/legacy-app.log" --startas "$INFRA/bin/run-legacy-app"
+    for _ in {1..300}; do
+        local status
+        status="$(curl --noproxy '*' -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:189/health 2>/dev/null || true)"
+        [[ "$status" == 200 || "$status" == 503 ]] && return
+        sleep 1
+    done
+    tail -80 "$RUN/legacy-app.log" >&2
+    fail 'legacy FastAPI rollback failed'
+}
+
+setup() {
+    require_root
+    install_packages
+    prepare_directories
+    generate_secrets
+    render_configuration
+    install_keycloak
+    init_postgres
+    start_postgres
+    configure_databases
+    log 'setup complete; port 189 has not been switched'
+}
+
+start() {
+    require_root
+    setup
+    start_redis
+    start_keycloak
+    migrate_legacy_tasks
+    start_app
+    stop_old_app
+    if ! start_nginx; then
+        log 'Nginx failed; restoring legacy application'
+        stop_app
+        start_legacy_app
+        fail 'deployment switch failed and was rolled back'
+    fi
+    log "stack is available at $PUBLIC_ORIGIN"
+}
+
+stop_all() {
+    require_root
+    stop_nginx
+    stop_app
+    stop_keycloak
+    stop_redis
+    stop_postgres
+    log 'local enterprise stack stopped'
+}
+
+rollback() {
+    require_root
+    stop_nginx
+    stop_app
+    stop_keycloak
+    stop_redis
+    stop_postgres
+    start_legacy_app
+    log "rollback complete; legacy application is available at $PUBLIC_ORIGIN"
+}
+
+status() {
+    printf '%-12s %s\n' PostgreSQL "$(postgres_running && echo running || echo stopped)"
+    printf '%-12s %s\n' Redis "$([[ -s "$REDIS_RUN/redis.pid" ]] && kill -0 "$(cat "$REDIS_RUN/redis.pid")" 2>/dev/null && echo running || echo stopped)"
+    printf '%-12s %s\n' Keycloak "$(keycloak_running && echo running || echo stopped)"
+    printf '%-12s %s\n' FastAPI "$(app_running && echo running || echo stopped)"
+    printf '%-12s %s\n' Nginx "$(nginx_running && echo running || echo stopped)"
+    printf '%-12s %s\n' LegacyApp "$(legacy_app_running && echo running || echo stopped)"
+    ss -ltnp | grep -E ':(189|5432|6379|8090|8180|9000)[[:space:]]' || true
+}
+
+verify() {
+    require_root
+    [[ -s "$SECRETS/app.env" ]] || fail 'run setup first'
+    set -a
+    # shellcheck source=/dev/null
+    source "$SECRETS/app.env"
+    set +a
+    export KEYCLOAK_ADMIN_PASSWORD="$(read_secret keycloak_admin_password)"
+    export KEYCLOAK_DATABASE_URL="postgresql://keycloak_app:$(read_secret postgres_keycloak_password)@127.0.0.1:5432/keycloak"
+    export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+    "$PYTHON" "$ROOT/scripts/verify_local_stack.py"
+}
+
+usage() {
+    cat <<'EOF'
+Usage: infra/bin/stack {setup|start|stop|status|verify|rollback}
+
+  setup     install and initialize without switching port 189
+  start     start all services and atomically switch port 189 to Nginx
+  stop      stop the local enterprise stack
+  status    show managed processes and listeners
+  verify    run database, cache, OIDC, RBAC, proxy and task checks
+  rollback  stop the new stack and restore the legacy FastAPI service
+EOF
+}
+
+case "${1:-}" in
+    setup) setup ;;
+    start) start ;;
+    stop) stop_all ;;
+    status) status ;;
+    verify) verify ;;
+    rollback) rollback ;;
+    *) usage; exit 2 ;;
+esac

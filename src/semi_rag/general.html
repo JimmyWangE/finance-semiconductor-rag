@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>通用问答工作台 · 芯研</title>
+<link rel="stylesheet" href="/ui/app.css?v=20260921.1">
+<link rel="stylesheet" href="/ui/tokens.css">
+<link rel="stylesheet" href="/ui/hallmark.css">
+</head>
+<body class="general-page" data-theme="cobalt">
+<a class="skip-link" href="#query">跳到问题输入</a>
+<main class="app-shell">
+<aside class="sidebar" id="history-panel">
+<a href="/" class="brand"><span class="brand-mark"><i class="icon" data-icon="microchip"></i></span><span>芯研<span class="brand-sub">SEMI RESEARCH</span></span></a>
+<nav class="primary-nav" aria-label="主导航"><a class="nav-item" href="/"><i class="icon" data-icon="message-square"></i>研报研究</a><a class="nav-item" href="/agent"><i class="icon" data-icon="file-text"></i>金融 Agent</a><a class="nav-item" href="/articles"><i class="icon" data-icon="newspaper"></i>行业文章</a><a class="nav-item active" href="/chat" aria-current="page"><i class="icon" data-icon="message-square"></i>通用问答</a><a class="nav-item digital-human-link" href="/digital-human/"><i class="icon" data-icon="scan-face"></i>数字人工作台</a><a class="nav-item" href="/library"><i class="icon" data-icon="library"></i>文档与知识库</a></nav>
+<button id="new-conversation" class="new-conversation secondary"><i class="icon" data-icon="plus"></i>新建通用会话</button>
+<div class="sidebar-label"><span>会话历史</span><span id="session-total"></span></div>
+<nav id="conversations" class="session-list" aria-label="通用问答会话列表"></nav>
+<button id="more-conversations" class="quiet" hidden>加载更多</button>
+<div class="sidebar-footer"><span class="avatar">问</span><div><strong>通用问答空间</strong><span>Qwen3.8-27B · SFT</span></div><i class="icon" data-icon="shield-check"></i></div>
+</aside>
+<div class="workspace">
+<header class="workspace-header"><div class="heading-left"><button id="toggle-history" class="icon-button mobile-only" title="会话历史" aria-label="会话历史" aria-expanded="false"><i class="icon" data-icon="panel-left-open"></i></button><span class="breadcrumb">通用问答</span><span class="slash">/</span><h1 id="conversation-title">新会话</h1></div><div class="heading-actions"><span id="health" class="service-state">连接中</span><button id="rename-conversation" class="icon-button" title="重命名会话" aria-label="重命名" disabled><i class="icon" data-icon="pencil"></i></button><button id="delete-conversation" class="icon-button danger" title="删除会话" aria-label="删除会话" disabled><i class="icon" data-icon="trash-2"></i></button></div></header>
+<div class="general-main">
+<section class="conversation">
+<div class="conversation-toolbar"><div class="section-kicker"><i class="icon" data-icon="message-square"></i>通用对话</div><span class="mode-boundary"><i class="icon" data-icon="shield-check"></i>不连接研报库</span></div>
+<div id="thread" role="log" aria-label="通用问答对话"></div>
+<div class="composer-area">
+<form id="query-form" class="composer">
+<label for="query" class="sr-only">问题</label>
+<div id="attachments" class="attachment-tray" hidden></div><textarea id="query" maxlength="4000" placeholder="输入问题…"></textarea>
+<div class="commands"><div class="composer-tools"><button id="attach-media" type="button" class="icon-button quiet" title="添加图片或视频" aria-label="添加图片或视频"><i class="icon" data-icon="media-add"></i></button><input id="media-input" class="sr-only" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"><span class="composer-mode"><i class="icon" data-icon="message-square"></i>模型知识问答</span></div><button id="submit" class="send-button" title="发送问题" aria-label="发送"><i class="icon" data-icon="arrow-up"></i></button></div>
+</form>
+<div class="composer-meta"><span id="status" role="status" aria-live="polite"></span><span class="model-label">Qwen3.8-27B</span></div><p id="error" role="alert"></p>
+</div>
+</section>
+</div>
+</div>
+</main>
+<dialog id="rename-dialog" class="compact-dialog"><form id="rename-form"><h2>重命名会话</h2><label for="rename-title">会话名称</label><input id="rename-title" aria-label="会话名称" maxlength="100" required><div class="dialog-actions"><button id="cancel-rename" type="button" class="secondary">取消</button><button type="submit">保存</button></div></form></dialog>
+<script src="/ui/common.js?v=20260920.2" defer></script><script src="/ui/media.js?v=20260920.2" defer></script><script src="/general.js?v=20260920.2" defer></script>
+</body></html>

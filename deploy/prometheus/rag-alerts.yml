@@ -1,0 +1,28 @@
+groups:
+  - name: semiconductor-rag
+    rules:
+      - alert: RagHttpHighErrorRate
+        expr: sum(rate(rag_http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(rag_http_requests_total[5m])), 0.001) > 0.02
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "RAG HTTP 5xx rate exceeds 2%" }
+      - alert: RagModelHighErrorRate
+        expr: sum(rate(rag_model_calls_total{outcome="error"}[5m])) / clamp_min(sum(rate(rag_model_calls_total[5m])), 0.001) > 0.05 and sum(increase(rag_model_calls_total[5m])) >= 20
+        for: 5m
+        labels: { severity: critical }
+        annotations: { summary: "Model error rate exceeds 5%" }
+      - alert: RagModelSlowP95
+        expr: histogram_quantile(0.95, sum by (le) (rate(rag_model_call_duration_seconds_bucket[10m]))) > 30
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "Model P95 latency exceeds 30 seconds" }
+      - alert: RagAgentQueueBacklog
+        expr: rag_tasks{type="agent.analysis",status="queued"} > 4 or rag_task_oldest_queued_seconds{type="agent.analysis"} > 600
+        for: 2m
+        labels: { severity: warning }
+        annotations: { summary: "Agent queue is backlogged" }
+      - alert: RagUploadQueueBacklog
+        expr: sum(rag_tasks{type="document.upload",status=~"queued|queued_index"}) > 5
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "Document upload queue is backlogged" }

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>金融 Agent · 芯研</title>
+<link rel="stylesheet" href="/ui/app.css?v=20260921.1">
+<link rel="stylesheet" href="/ui/tokens.css">
+<link rel="stylesheet" href="/ui/hallmark.css">
+<link rel="stylesheet" href="/agent.css?v=2">
+</head>
+<body class="agent-page" data-theme="cobalt">
+<a class="skip-link" href="#ticker">跳到分析设置</a>
+<main class="app-shell">
+<aside class="sidebar" id="history-panel">
+<a href="/" class="brand"><span class="brand-mark"><i class="icon" data-icon="microchip"></i></span><span>芯研<span class="brand-sub">SEMI RESEARCH</span></span></a>
+<nav class="primary-nav" aria-label="主导航"><a class="nav-item" href="/"><i class="icon" data-icon="message-square"></i>研报研究</a><a class="nav-item active" href="/agent" aria-current="page"><i class="icon" data-icon="file-text"></i>金融 Agent</a><a class="nav-item" href="/articles"><i class="icon" data-icon="newspaper"></i>行业文章</a><a class="nav-item" href="/chat"><i class="icon" data-icon="message-square"></i>通用问答</a><a class="nav-item digital-human-link" href="/digital-human/"><i class="icon" data-icon="scan-face"></i>数字人工作台</a><a class="nav-item" href="/library"><i class="icon" data-icon="library"></i>文档与知识库</a></nav>
+<div class="sidebar-label"><span>分析记录</span><span id="job-count"></span></div>
+<nav id="job-list" class="session-list" aria-label="分析记录"></nav>
+<div class="sidebar-footer"><span class="avatar">研</span><div><strong>多智能体研究</strong><span>Qwen3.8-27B</span></div><i class="icon" data-icon="shield-check"></i></div>
+</aside>
+<div class="workspace">
+<header class="workspace-header"><div class="heading-left"><button id="toggle-history" class="icon-button mobile-only" title="打开导航" aria-label="打开导航" aria-expanded="false"><i class="icon" data-icon="panel-left-open"></i></button><span class="breadcrumb">研究空间</span><span class="slash">/</span><h1>金融 Agent</h1></div><div class="heading-actions"><span id="service-state" class="service-state">就绪</span></div></header>
+<div class="agent-layout">
+<section class="agent-config" aria-labelledby="config-title"><div class="agent-section-head"><h2 id="config-title">新建分析</h2><span>TradingAgents-CN</span></div>
+<form id="agent-form">
+<div class="stock-field"><label for="ticker">分析标的</label><input id="ticker" name="ticker" type="text" maxlength="40" placeholder="代码或名称，例如 688981 / 中芯国际" role="combobox" aria-autocomplete="list" aria-controls="stock-options" aria-expanded="false" required autocomplete="off"><div id="stock-options" class="stock-options" role="listbox" hidden></div><small id="stock-hint" aria-live="polite">输入代码或名称以查找 A 股标的</small></div>
+<label for="trade-date"><span>分析日期</span><input id="trade-date" name="trade-date" type="date" required><small id="date-source" aria-live="polite"></small></label>
+<fieldset><legend>分析角色</legend><label><input type="checkbox" name="analyst" value="market" checked>市场分析</label><label><input type="checkbox" name="analyst" value="news" checked>新闻分析</label><label><input type="checkbox" name="analyst" value="fundamentals" checked>基本面分析</label><label><input type="checkbox" name="analyst" value="social">情绪分析</label></fieldset>
+<button id="run-analysis" type="submit" disabled><i class="icon" data-icon="arrow-up"></i>提交分析</button>
+<p id="form-error" class="agent-error" role="alert"></p>
+</form>
+<p class="agent-disclaimer">分析依赖第三方行情与新闻数据。模型输出仅供研究参考，不构成投资建议。</p>
+</section>
+<section class="agent-result" aria-labelledby="result-title"><div class="agent-section-head"><h2 id="result-title">分析结果</h2><span id="job-status" role="status" aria-live="polite">尚未提交</span></div><div class="agent-job-actions"><button id="cancel-analysis" type="button" hidden>中断分析</button><button id="retry-analysis" type="button" hidden>重试分析</button></div><div id="result-body" class="agent-result-body"><p class="agent-empty">选择股票并提交分析后，结果会显示在这里。</p></div></section>
+</div>
+</div>
+</main>
+<script src="/agent.js?v=3" defer></script>
+</body></html>
