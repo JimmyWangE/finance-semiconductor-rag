@@ -55,6 +55,9 @@ models/
 *.jpg
 *.jpeg
 *.webp
+!docs/screenshots/
+!docs/screenshots/*.png
+docs/screenshots/*.json
 
 # Generated evaluation and migration snapshots
 *.sqlite3

@@ -12,6 +12,36 @@
 - **工作台**：研报研究、通用问答、文档库、PDF 校对入库、行业文章和金融 Agent 入口，支持流式输出与会话历史。
 - **工程能力**：OIDC/Keycloak 认证、PostgreSQL 任务状态、Redis 队列、结构化日志、Prometheus 指标和压力测试脚本。
 
+## 功能截图
+
+以下截图来自本项目实际运行实例，展示核心工作台和移动端布局。截图只用于界面说明，不包含生产凭据、Cookie 或原始 PDF 文件。
+
+### 研报研究工作台
+
+![研报研究工作台](docs/screenshots/research-desktop.png)
+
+### 文档与知识库
+
+![文档与知识库](docs/screenshots/library-desktop.png)
+
+### 半导体行业文章
+
+![行业文章库](docs/screenshots/articles-desktop.png)
+
+### 金融 Agent
+
+![金融 Agent 分析工作台](docs/screenshots/agent-desktop.png)
+
+### 通用问答
+
+![通用问答工作台](docs/screenshots/chat-desktop.png)
+
+### 移动端适配
+
+<img src="docs/screenshots/research-mobile.png" alt="研报研究工作台移动端" width="320">
+<img src="docs/screenshots/library-mobile.png" alt="文档与知识库移动端" width="320">
+<img src="docs/screenshots/articles-mobile.png" alt="行业文章移动端" width="320">
+
 ## 目录
 
 ```text
